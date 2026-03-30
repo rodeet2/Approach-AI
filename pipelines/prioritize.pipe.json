@@ -1,0 +1,68 @@
+{
+    "id": "prioritize-pipeline",
+    "version": "1.0",
+    "name": "Task Prioritization",
+    "description": "Three-phase AI pipeline: semantic analysis → constraint analysis → ranked synthesis. Reads all Task nodes and [:BLOCKS] relationships from Neo4j, ranks them, and returns finalRank + reasoning per task.",
+    "nodes": [
+        {
+            "id": "neo4j-source",
+            "type": "db_neo4j://",
+            "label": "Neo4j — Fetch All Tasks",
+            "config": {
+                "neo4jdb.uri": "${NEO4J_URI}",
+                "neo4jdb.auth_method": "userpass",
+                "neo4jdb.user": "${NEO4J_USER}",
+                "neo4jdb.password": "${NEO4J_PASSWORD}",
+                "neo4jdb.db_description": "Task graph. Nodes are (:Task {id, title, createdAt, priority}). Relationships are [:BLOCKS] from a blocker task to a blocked task.",
+                "neo4jdb.max_attempts": 3
+            },
+            "query": "MATCH (t:Task) OPTIONAL MATCH (t)-[r:BLOCKS]->(blocked:Task) RETURN t.id AS id, t.title AS title, t.createdAt AS createdAt, collect(blocked.title) AS blocks",
+            "position": { "x": 100, "y": 200 }
+        },
+        {
+            "id": "prompt-builder",
+            "type": "prompt://",
+            "label": "Prioritization Prompt",
+            "template": "You are a Decision Orchestrator. You will receive a JSON dataset of tasks from a Neo4j knowledge graph.\n\nPhase 1 — Semantic Analysis:\nExamine each task's title. Identify which tasks are inherently foundational, urgent, or high-impact based on their nature (e.g. infrastructure tasks before feature tasks, blocking items before dependent items).\n\nPhase 2 — Constraint Analysis:\nThe 'blocks' array for each task lists tasks that CANNOT start until this task is complete. This is an absolute rule — a task that blocks others must always rank higher than every task it blocks.\n\nPhase 3 — Synthesis:\nProduce a final master ranked list. Tasks with no relationships ('orphans') should be inserted by semantic importance relative to graph-linked tasks.\n\nReturn ONLY a valid JSON array (no markdown, no explanation outside the JSON). Each element:\n{\n  \"taskId\": \"<the task id>\",\n  \"finalRank\": <1 = highest priority>,\n  \"reasoning\": \"<one sentence explaining this rank>\"\n}\n\nTask data:\n{{input}}",
+            "position": { "x": 380, "y": 200 }
+        },
+        {
+            "id": "llm-ranker",
+            "type": "llm_openai://",
+            "label": "GPT-4o — Rank Tasks",
+            "config": {
+                "llm_openai.profile": "openai-4o",
+                "llm_openai.apikey": "${OPENAI_API_KEY}",
+                "llm_openai.system": "You are a precise task prioritization engine. Always return valid JSON arrays only.",
+                "llm_openai.temperature": 0.2,
+                "llm_openai.maxTokens": 2048
+            },
+            "position": { "x": 660, "y": 200 }
+        },
+        {
+            "id": "neo4j-writer",
+            "type": "db_neo4j://",
+            "label": "Neo4j — Write Priority Scores",
+            "config": {
+                "neo4jdb.uri": "${NEO4J_URI}",
+                "neo4jdb.auth_method": "userpass",
+                "neo4jdb.user": "${NEO4J_USER}",
+                "neo4jdb.password": "${NEO4J_PASSWORD}"
+            },
+            "query": "UNWIND $rankings AS r MATCH (t:Task {id: r.taskId}) SET t.priority = r.finalRank, t.reasoning = r.reasoning",
+            "position": { "x": 940, "y": 200 }
+        },
+        {
+            "id": "response-out",
+            "type": "response://",
+            "label": "Return Ranked List",
+            "position": { "x": 1200, "y": 200 }
+        }
+    ],
+    "edges": [
+        { "from": "neo4j-source",  "to": "prompt-builder", "lane": "table"     },
+        { "from": "prompt-builder","to": "llm-ranker",      "lane": "questions" },
+        { "from": "llm-ranker",    "to": "neo4j-writer",    "lane": "answers"   },
+        { "from": "neo4j-writer",  "to": "response-out",    "lane": "answers"   }
+    ]
+}

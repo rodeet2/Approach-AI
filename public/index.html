@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+        /* ── CSS Variables ─────────────────────────────────────────── */
+        :root {
+            --bg-base:        #070b14;
+            --bg-panel:       #0d1424;
+            --bg-card:        #111827;
+            --bg-card-hover:  #161f30;
+            --border:         #1e2d45;
+            --border-bright:  #2a3f5f;
+            --accent:         #00d4ff;
+            --accent-dim:     rgba(0, 212, 255, 0.15);
+            --accent-glow:    rgba(0, 212, 255, 0.35);
+            --purple:         #7c3aed;
+            --purple-dim:     rgba(124, 58, 237, 0.2);
+            --green:          #00ffa3;
+            --green-dim:      rgba(0, 255, 163, 0.15);
+            --amber:          #f59e0b;
+            --amber-dim:      rgba(245, 158, 11, 0.15);
+            --red:            #ef4444;
+            --text-primary:   #e2e8f0;
+            --text-secondary: #64748b;
+            --text-muted:     #374151;
+            --font-ui:        'Inter', sans-serif;
+            --font-mono:      'JetBrains Mono', monospace;
+            --radius:         10px;
+            --radius-lg:      16px;
+            --transition:     0.2s ease;
+        }
+
+        /* ── Reset & Base ──────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            font-family: var(--font-ui);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Grid background texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Radial glow at top */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 500px;
+            background: radial-gradient(ellipse, rgba(0, 212, 255, 0.07) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Layout ────────────────────────────────────────────────── */
+        .app {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        /* ── Header ────────────────────────────────────────────────── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 28px 0 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 36px;
+            height: 36px;
+            filter: drop-shadow(0 0 8px var(--accent));
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .logo-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        .logo-sub {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 100px;
+            border: 1px solid var(--border-bright);
+            background: var(--bg-panel);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.4; }
+        }
+
+        .task-count-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
+        }
+
+        .task-count-badge span {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* ── Input Section ─────────────────────────────────────────── */
+        .input-section {
+            position: relative;
+        }
+
+        .input-form {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: calc(var(--radius) + 1px);
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            opacity: 0;
+            transition: opacity var(--transition);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .input-wrapper:focus-within::before {
+            opacity: 0.6;
+        }
+
+        .task-input {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            padding: 18px 56px 18px 22px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-bright);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-family: var(--font-ui);
+            font-size: 16px;
+            font-weight: 400;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+
+        .task-input::placeholder {
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .task-input:focus {
+            border-color: transparent;
+            background: var(--bg-card);
+            box-shadow: 0 0 0 1px var(--accent), 0 0 32px rgba(0, 212, 255, 0.12);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: color var(--transition);
+        }
+
+        .input-wrapper:focus-within .input-icon {
+            color: var(--accent);
+        }
+
+        .add-btn {
+            padding: 0 28px;
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            border: none;
+            border-radius: var(--radius);
+            color: #070b14;
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            white-space: nowrap;
+        }
+
+        .add-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 28px rgba(0, 212, 255, 0.45);
+        }
+
+        .add-btn:active {
+            transform: translateY(0);
+        }
+
+        .add-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── Columns ───────────────────────────────────────────────── */
+        .columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .columns { grid-template-columns: 1fr; }
+        }
+
+        /* ── Panel ─────────────────────────────────────────────────── */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 22px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .panel-icon.purple {
+            background: var(--purple-dim);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            color: #a78bfa;
+        }
+
+        .panel-icon.cyan {
+            background: var(--accent-dim);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: var(--accent);
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        .panel-subtitle {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 1px;
+            font-weight: 400;
+        }
+
+        .panel-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-weight: 500;
+        }
+
+        .panel-badge.purple {
+            background: var(--purple-dim);
+            color: #a78bfa;
+            border: 1px solid rgba(124, 58, 237, 0.25);
+        }
+
+        .panel-badge.cyan {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(0, 212, 255, 0.25);
+        }
+
+        .panel-body {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 320px;
+        }
+
+        /* custom scrollbar */
+        .panel-body::-webkit-scrollbar { width: 4px; }
+        .panel-body::-webkit-scrollbar-track { background: transparent; }
+        .panel-body::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
+
+        /* ── Empty State ───────────────────────────────────────────── */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .empty-state svg {
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 200px;
+        }
+
+        /* ── Priority Task Card ────────────────────────────────────── */
+        .task-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            transition: border-color var(--transition), background var(--transition), transform var(--transition);
+            animation: slideIn 0.25s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-card:hover {
+            border-color: var(--border-bright);
+            background: var(--bg-card-hover);
+            transform: translateX(2px);
+        }
+
+        .rank-number {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .rank-number.rank-1 { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .rank-number.rank-2 { background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3); }
+        .rank-number.rank-3 { background: rgba(180, 83, 9, 0.15); color: #d97706; border: 1px solid rgba(180, 83, 9, 0.25); }
+        .rank-number.rank-n { background: var(--bg-panel); color: var(--text-secondary); border: 1px solid var(--border); }
+
+        .task-card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+
+        .meta-chip {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 100px;
+            font-weight: 500;
+        }
+
+        .meta-chip.ai-pending {
+            background: var(--purple-dim);
+            color: #a78bfa;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .meta-chip.priority-high {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--amber);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .meta-chip.priority-med {
+            background: rgba(100, 116, 139, 0.12);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .task-time {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+            border-radius: 6px;
+            transition: color var(--transition), background var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity var(--transition), color var(--transition);
+        }
+
+        .task-card:hover .delete-btn { opacity: 1; }
+        .delete-btn:hover { color: var(--red); background: rgba(239, 68, 68, 0.1); }
+
+        /* ── Graph Canvas ──────────────────────────────────────────── */
+        .graph-canvas {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* A horizontal chain: [bubble] ──BLOCKS──> [bubble] ──> ... */
+        .graph-chain {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0;
+            animation: slideIn 0.25s ease;
+        }
+
+        /* The task bubble (circle/pill) */
+        .graph-bubble {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 88px;
+            max-width: 130px;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1.5px solid var(--accent);
+            border-radius: 100px;
+            text-align: center;
+            box-shadow: 0 0 14px rgba(0, 212, 255, 0.12), inset 0 0 20px rgba(0, 212, 255, 0.04);
+            transition: box-shadow var(--transition), transform var(--transition);
+            cursor: default;
+        }
+
+        .graph-bubble:hover {
+            box-shadow: 0 0 24px rgba(0, 212, 255, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .graph-bubble.isolated {
+            border-color: var(--border-bright);
+            box-shadow: none;
+        }
+
+        .graph-bubble.isolated:hover {
+            border-color: rgba(0, 212, 255, 0.35);
+            box-shadow: 0 0 14px rgba(0, 212, 255, 0.1);
+        }
+
+        /* Category colour dot in top-right corner of bubble */
+        .category-dot {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .cat-finance   { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.6); }
+        .cat-health    { background: #00ffa3; box-shadow: 0 0 6px rgba(0,255,163,0.6); }
+        .cat-work      { background: #7c3aed; box-shadow: 0 0 6px rgba(124,58,237,0.6); }
+        .cat-home      { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+        .cat-learning  { background: #3b82f6; box-shadow: 0 0 6px rgba(59,130,246,0.6); }
+        .cat-other     { background: #64748b; }
+
+        .bubble-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .bubble-id {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 3px;
+            letter-spacing: 0.04em;
+        }
+
+        .bubble-effort {
+            font-family: var(--font-mono);
+            font-size: 8px;
+            margin-top: 3px;
+            padding: 1px 6px;
+            border-radius: 100px;
+        }
+        .effort-low    { color: var(--green);  background: rgba(0,255,163,0.08); }
+        .effort-medium { color: var(--amber);  background: rgba(245,158,11,0.08); }
+        .effort-high   { color: var(--red);    background: rgba(239,68,68,0.08); }
+
+        /* The arrow + label between two bubbles */
+        .graph-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .connector-label {
+            font-family: var(--font-mono);
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+
+        /* BLOCKS — solid amber arrow */
+        .connector-line {
+            position: relative;
+            width: 28px;
+            height: 2px;
+            border-radius: 2px;
+        }
+
+        .connector-line::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        .connector-BLOCKS .connector-label    { color: var(--amber); }
+        .connector-BLOCKS .connector-line     { background: linear-gradient(to right, var(--amber), rgba(245,158,11,0.5)); }
+        .connector-BLOCKS .connector-line::after { border-left: 6px solid var(--amber); }
+
+        /* RELATED_TO — cyan dashed */
+        .connector-RELATED_TO .connector-label { color: var(--accent); }
+        .connector-RELATED_TO .connector-line  {
+            background: none;
+            border-top: 2px dashed rgba(0, 212, 255, 0.6);
+            height: 0;
+        }
+        .connector-RELATED_TO .connector-line::after { border-left: 6px solid var(--accent); top: -4px; }
+
+        /* PART_OF — purple dashed */
+        .connector-PART_OF .connector-label { color: #a78bfa; }
+        .connector-PART_OF .connector-line  {
+            background: none;
+            border-top: 2px dashed rgba(124, 58, 237, 0.6);
+            height: 0;
+        }
+        .connector-PART_OF .connector-line::after { border-left: 6px solid #a78bfa; top: -4px; }
+
+        /* Row of isolated (unconnected) nodes */
+        .standalone-section {
+            animation: slideIn 0.25s ease;
+        }
+
+        .standalone-label {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .standalone-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* ── AI Summary box ────────────────────────────────────────── */
+        .ai-summary {
+            margin: 0 16px 14px;
+            padding: 12px 16px;
+            background: rgba(124, 58, 237, 0.06);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: var(--radius);
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            animation: slideIn 0.3s ease;
+            display: none;
+        }
+
+        .ai-summary.visible { display: block; }
+
+        /* ── AI Banner ─────────────────────────────────────────────── */
+        .ai-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 18px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(0, 212, 255, 0.06));
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: var(--radius);
+            margin: 0 16px 16px;
+        }
+
+        .ai-banner-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--purple-dim);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #a78bfa;
+        }
+
+        .ai-banner-text {
+            flex: 1;
+        }
+
+        .ai-banner-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #a78bfa;
+        }
+
+        .ai-banner-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+
+        .ai-coming-soon {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 100px;
+            background: rgba(124, 58, 237, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            white-space: nowrap;
+        }
+
+        /* ── Prioritize button ─────────────────────────────────────── */
+        .prioritize-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 16px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(0, 212, 255, 0.1));
+            border: 1px solid rgba(124, 58, 237, 0.45);
+            border-radius: 100px;
+            color: #a78bfa;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: background var(--transition), border-color var(--transition),
+                        box-shadow var(--transition), transform var(--transition);
+            white-space: nowrap;
+        }
+
+        .prioritize-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(0, 212, 255, 0.15));
+            border-color: rgba(124, 58, 237, 0.7);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .prioritize-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .prioritize-btn.loading .btn-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* ── AI reasoning chip on task cards ──────────────────────── */
+        .reasoning-row {
+            margin-top: 7px;
+            padding: 7px 10px;
+            background: rgba(124, 58, 237, 0.07);
+            border: 1px solid rgba(124, 58, 237, 0.18);
+            border-radius: 6px;
+            display: flex;
+            gap: 7px;
+            align-items: flex-start;
+        }
+
+        .reasoning-icon {
+            color: #a78bfa;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .reasoning-text {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ── Toast notification ────────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--bg-card);
+            border: 1px solid var(--border-bright);
+            border-radius: 100px;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: var(--text-primary);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="18,2 34,10 34,26 18,34 2,26 2,10" stroke="#00d4ff" stroke-width="1.5" fill="rgba(0,212,255,0.07)"/>
+                        <circle cx="18" cy="18" r="5" fill="#00d4ff" opacity="0.9"/>
+                        <line x1="18" y1="2" x2="18" y2="13" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+                        <line x1="18" y1="23" x2="18" y2="34" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+                        <line x1="2" y1="10" x2="13" y2="15" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+                        <line x1="23" y1="21" x2="34" y2="26" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+                        <line x1="34" y1="10" x2="23" y2="15" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+                        <line x1="13" y1="21" x2="2" y2="26" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <div class="logo-title">Command Center</div>
+                    <div class="logo-sub">Task Intelligence System</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="task-count-badge">
+                    <span id="taskCountDisplay">0</span> tasks
+                </div>
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    ONLINE
+                </div>
+            </div>
+        </header>
+
+        <!-- Input -->
+        <section class="input-section">
+            <form class="input-form" id="taskForm" onsubmit="handleSubmit(event)">
+                <div class="input-wrapper">
+                    <input
+                        type="text"
+                        id="taskInput"
+                        class="task-input"
+                        placeholder="What needs to be done?"
+                        autocomplete="off"
+                        spellcheck="false"
+                        maxlength="200"
+                    />
+                    <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                </div>
+                <button type="submit" class="add-btn" id="addBtn">Add Task</button>
+            </form>
+        </section>
+
+        <!-- Columns -->
+        <div class="columns">
+
+            <!-- Priority Path -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <div class="panel-icon purple">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="panel-title">The Priority Path</div>
+                            <div class="panel-subtitle">AI-ranked task order</div>
+                        </div>
+                    </div>
+                    <div class="panel-badge purple" id="priorityCount">0 tasks</div>
+                </div>
+
+                <!-- RocketRide AI banner + Prioritize button -->
+                <div class="ai-banner">
+                    <div class="ai-banner-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </div>
+                    <div class="ai-banner-text">
+                        <div class="ai-banner-title">RocketRide AI Ranking</div>
+                        <div class="ai-banner-sub" id="aiStatusText">3-phase decision orchestrator · Neo4j graph-aware</div>
+                    </div>
+                    <button class="prioritize-btn" id="prioritizeBtn" onclick="runPrioritize()">
+                        <svg class="btn-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        PRIORITIZE
+                    </button>
+                </div>
+
+                <div class="ai-summary" id="aiSummary"></div>
+                <div class="panel-body" id="priorityList">
+                    <div class="empty-state" id="priorityEmpty">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <p>Add a task to see it ranked here</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Knowledge Graph -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <div class="panel-icon cyan">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="panel-title">The Knowledge Graph</div>
+                            <div class="panel-subtitle">Neo4j node connections</div>
+                        </div>
+                    </div>
+                    <div class="panel-badge cyan" id="graphCount">0 nodes</div>
+                </div>
+
+                <div class="panel-body" id="graphList" style="flex-wrap: wrap; align-content: flex-start;">
+                    <div class="empty-state" id="graphEmpty">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                        <p>Task nodes will appear here once connected to Neo4j</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ── Helpers ──────────────────────────────────────────────────
+        function formatTime(iso) {
+            const d = new Date(iso);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function getRankClass(index) {
+            if (index === 0) return 'rank-1';
+            if (index === 1) return 'rank-2';
+            if (index === 2) return 'rank-3';
+            return 'rank-n';
+        }
+
+        function getPriorityChip(priority, total) {
+            const ratio = priority / total;
+            if (ratio > 0.66) return '<span class="meta-chip priority-high">High Priority</span>';
+            if (ratio > 0.33) return '<span class="meta-chip priority-med">Mid Priority</span>';
+            return '<span class="meta-chip priority-med">Low Priority</span>';
+        }
+
+        function shortId(id) {
+            return id.slice(0, 8).toUpperCase();
+        }
+
+        let toastTimer;
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show' + (isError ? ' error' : '');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { toast.className = 'toast'; }, 2800);
+        }
+
+        // ── Render ───────────────────────────────────────────────────
+        function renderPriorityList(tasks) {
+            const list = document.getElementById('priorityList');
+            const empty = document.getElementById('priorityEmpty');
+            const badge = document.getElementById('priorityCount');
+            badge.textContent = tasks.length + ' task' + (tasks.length !== 1 ? 's' : '');
+
+            if (tasks.length === 0) {
+                list.innerHTML = '';
+                list.appendChild(empty);
+                return;
+            }
+
+            // Sort by AI-assigned priority (lower number = higher rank); fall back to createdAt
+            const sorted = [...tasks].sort((a, b) => {
+                const ap = Number(a.priority) || 9999;
+                const bp = Number(b.priority) || 9999;
+                if (ap !== bp) return ap - bp;
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+
+            const hasAiRanking = sorted.some(t => t.reasoning);
+
+            list.innerHTML = sorted.map((task, i) => {
+                const aiChip = hasAiRanking
+                    ? '<span class="meta-chip priority-high">AI Ranked</span>'
+                    : '<span class="meta-chip ai-pending">AI Pending</span>';
+
+                const reasoningHtml = task.reasoning ? `
+                    <div class="reasoning-row">
+                        <svg class="reasoning-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <span class="reasoning-text">${escapeHtml(task.reasoning)}</span>
+                    </div>` : '';
+
+                return `
+                <div class="task-card" data-id="${task.id}">
+                    <div class="rank-number ${getRankClass(i)}">${i + 1}</div>
+                    <div class="task-card-body">
+                        <div class="task-title">${escapeHtml(task.title)}</div>
+                        <div class="task-meta">
+                            ${aiChip}
+                            <span class="task-time">${formatTime(task.createdAt)}</span>
+                        </div>
+                        ${reasoningHtml}
+                    </div>
+                    <button class="delete-btn" onclick="deleteTask('${task.id}')" title="Remove task">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function buildGraphChains(nodes, relationships) {
+            const nodeById = {};
+            nodes.forEach(n => { nodeById[n.id] = n; });
+
+            // First outgoing edge per source, and track which nodes have incoming
+            const firstTarget = {};
+            const hasIncoming = new Set();
+            relationships.forEach(rel => {
+                if (!firstTarget[rel.source]) firstTarget[rel.source] = { id: rel.target, type: rel.type };
+                hasIncoming.add(rel.target);
+            });
+
+            const placed = new Set();
+            const chains = [];
+
+            // Walk chains starting from true roots (outgoing, no incoming) first
+            const candidates = [
+                ...nodes.filter(n => firstTarget[n.id] && !hasIncoming.has(n.id)),
+                ...nodes.filter(n => firstTarget[n.id] &&  hasIncoming.has(n.id)),
+            ];
+
+            candidates.forEach(start => {
+                if (placed.has(start.id)) return;
+                const chain = [{ node: start, edgeType: null }];
+                placed.add(start.id);
+                let cur = start;
+                while (firstTarget[cur.id]) {
+                    const { id: nextId, type } = firstTarget[cur.id];
+                    if (placed.has(nextId) || !nodeById[nextId]) break;
+                    chain[chain.length - 1].edgeType = type;
+                    chain.push({ node: nodeById[nextId], edgeType: null });
+                    placed.add(nextId);
+                    cur = nodeById[nextId];
+                }
+                if (chain.length > 1) chains.push(chain);
+            });
+
+            const standalone = nodes.filter(n => !placed.has(n.id));
+            return { chains, standalone };
+        }
+
+        function renderGraphList(nodes, relationships) {
+            const list = document.getElementById('graphList');
+            const empty = document.getElementById('graphEmpty');
+            const badge = document.getElementById('graphCount');
+            badge.textContent = nodes.length + ' node' + (nodes.length !== 1 ? 's' : '');
+
+            if (nodes.length === 0) {
+                list.innerHTML = '';
+                list.appendChild(empty);
+                return;
+            }
+
+            const { chains, standalone } = buildGraphChains(nodes, relationships);
+
+            const categoryDotClass = {
+                finance: 'cat-finance', health: 'cat-health', work: 'cat-work',
+                home: 'cat-home', learning: 'cat-learning', other: 'cat-other',
+            };
+            const effortClass = { low: 'effort-low', medium: 'effort-medium', high: 'effort-high' };
+
+            function bubbleHtml(node, isolated) {
+                const cat = (node.category || '').toLowerCase();
+                const eff = (node.effort || '').toLowerCase();
+                const dotClass = categoryDotClass[cat] || 'cat-other';
+                const effClass = effortClass[eff] || '';
+                const effortHtml = eff ? `<div class="bubble-effort ${effClass}">${eff}</div>` : '';
+                const dotHtml = `<div class="category-dot ${dotClass}" title="${escapeHtml(cat || 'other')}"></div>`;
+                return `
+                    <div class="graph-bubble${isolated ? ' isolated' : ''}" data-id="${node.id}" title="${escapeHtml(node.title)}">
+                        ${dotHtml}
+                        <div class="bubble-title">${escapeHtml(node.title)}</div>
+                        <div class="bubble-id">NODE:${shortId(node.id)}</div>
+                        ${effortHtml}
+                    </div>`;
+            }
+
+            function connectorHtml(type) {
+                const safeType = ['BLOCKS', 'RELATED_TO', 'PART_OF'].includes(type) ? type : 'BLOCKS';
+                return `
+                    <div class="graph-connector connector-${safeType}">
+                        <div class="connector-label">${safeType.replace('_', ' ')}</div>
+                        <div class="connector-line"></div>
+                    </div>`;
+            }
+
+            const chainsHtml = chains.map(chain => {
+                const inner = chain.map((item, i) => {
+                    const bub = bubbleHtml(item.node, false);
+                    const arrow = item.edgeType ? connectorHtml(item.edgeType) : '';
+                    return bub + arrow;
+                }).join('');
+                return `<div class="graph-chain">${inner}</div>`;
+            }).join('');
+
+            const standaloneHtml = standalone.length > 0 ? `
+                <div class="standalone-section">
+                    <div class="standalone-label">ISOLATED NODES</div>
+                    <div class="standalone-row">
+                        ${standalone.map(n => bubbleHtml(n, true)).join('')}
+                    </div>
+                </div>` : '';
+
+            list.innerHTML = `<div class="graph-canvas">${chainsHtml}${standaloneHtml}</div>`;
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function updateTaskCount(tasks) {
+            document.getElementById('taskCountDisplay').textContent = tasks.length;
+        }
+
+        // ── API calls ────────────────────────────────────────────────
+        function applyGraph(data) {
+            const { nodes, relationships } = data;
+            renderPriorityList(nodes);
+            renderGraphList(nodes, relationships);
+            updateTaskCount(nodes);
+        }
+
+        async function runPrioritize() {
+            const btn = document.getElementById('prioritizeBtn');
+            const statusText = document.getElementById('aiStatusText');
+            const summaryBox = document.getElementById('aiSummary');
+            btn.disabled = true;
+            btn.classList.add('loading');
+            summaryBox.classList.remove('visible');
+
+            const phases = [
+                { delay: 1500, text: 'Building knowledge graph…' },
+                { delay: 4000, text: 'Ranking tasks…' },
+                { delay: 7000, text: 'Finalising plan…' },
+            ];
+            statusText.textContent = 'Analysing tasks…';
+            const timers = phases.map(p => setTimeout(() => { statusText.textContent = p.text; }, p.delay));
+
+            try {
+                const res = await fetch('/prioritize', { method: 'POST' });
+                timers.forEach(clearTimeout);
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Prioritization failed');
+                }
+                const data = await res.json();
+                applyGraph(data);
+
+                if (data.summary) {
+                    summaryBox.textContent = data.summary;
+                    summaryBox.classList.add('visible');
+                }
+
+                const edgeCount = (data.relationships || []).filter(r => r.relSource === 'ai').length;
+                statusText.textContent = `${data.rankings.length} tasks ranked · ${edgeCount} AI connections`;
+                showToast(`Graph built · ${data.rankings.length} tasks prioritized`);
+            } catch (err) {
+                timers.forEach(clearTimeout);
+                statusText.textContent = 'Neo4j graph-aware · Gemini 2.5 Flash';
+                showToast(err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        }
+
+        async function fetchTasks() {
+            try {
+                const res = await fetch('/graph');
+                if (!res.ok) throw new Error('Failed to fetch graph');
+                applyGraph(await res.json());
+            } catch (err) {
+                showToast('Could not load tasks', true);
+            }
+        }
+
+        async function addTask(title) {
+            const btn = document.getElementById('addBtn');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/add-task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: title }),
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to add task');
+                }
+                const result = await res.json();
+                const msg = result.relationship
+                    ? `Node created · BLOCKS → "${result.relationship.blockedBy}"`
+                    : 'Task node added to Neo4j';
+                // Refresh the full graph so both panels are in sync
+                await fetchTasks();
+                showToast(msg);
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteTask(id) {
+            try {
+                const res = await fetch('/graph/' + id, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete task');
+                applyGraph(await res.json());
+                showToast('Node removed from graph');
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        // ── Form handler ─────────────────────────────────────────────
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('taskInput');
+            const title = input.value.trim();
+            if (!title) return;
+            input.value = '';
+            await addTask(title);
+            input.focus();
+        }
+
+        // ── Boot ─────────────────────────────────────────────────────
+        fetchTasks();
+    </script>
+</body>
+</html>
