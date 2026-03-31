@@ -242,7 +242,7 @@ Return a single JSON object (no markdown, no text outside the JSON):
     { "taskId": "<id>", "category": "<one word: finance|health|work|home|learning|other>", "effort": "<low|medium|high>" }
   ],
   "edges": [
-    { "from": "<id>", "to": "<id>", "type": "<BLOCKS|RELATED_TO|PART_OF>", "reason": "<one short sentence>" }
+    { "from": "<id>", "to": "<id>", "type": "<BLOCKS|RELATED_TO|DONE_TOGETHER>", "reason": "<one short sentence>" }
   ],
   "rankings": [
     { "taskId": "<id>", "finalRank": <1 = highest priority>, "reasoning": "<one short sentence>" }
@@ -252,7 +252,7 @@ Return a single JSON object (no markdown, no text outside the JSON):
 Rules:
 - BLOCKS: task A must be completed before task B can start (hard dependency)
 - RELATED_TO: tasks belong to the same category or theme (grouping)
-- PART_OF: task is a component or sub-step of another task
+- DONE_TOGETHER: tasks that can be efficiently tackled at the same time or in the same outing (e.g. buying chocolate and getting bananas, or booking two appointments back-to-back) — use this to help the user batch work and save time
 - Every task must appear in "nodes" and "rankings"
 - Only create edges where there is a clear logical connection
 - finalRank must be unique integers starting from 1`;
@@ -299,7 +299,7 @@ Rules:
 
         // 3. Create AI edges (dynamic rel type via template literal — safe: validated above)
         for (const edge of edges) {
-            const relType = ['BLOCKS', 'RELATED_TO', 'PART_OF'].includes(edge.type)
+            const relType = ['BLOCKS', 'RELATED_TO', 'DONE_TOGETHER'].includes(edge.type)
                 ? edge.type : 'RELATED_TO';
             try {
                 await session.run(`
