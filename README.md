@@ -1,5 +1,7 @@
 # Approach AI
 
+Video Demo: https://www.loom.com/share/18cb7bf24ff546158c1451308bce90b0
+
 A smart task manager that uses **Gemini AI** to understand your tasks, build a knowledge graph of how they connect, and tell you exactly what to work on first — and what to batch together.
 
 ---

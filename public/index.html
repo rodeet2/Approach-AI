@@ -585,44 +585,51 @@
         .task-card:hover .delete-btn { opacity: 1; }
         .delete-btn:hover { color: var(--red); background: rgba(239, 68, 68, 0.1); }
 
-        /* ── Graph Canvas ──────────────────────────────────────────── */
+        /* ── Graph Canvas (SVG node graph) ────────────────────────── */
         .graph-canvas {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* A horizontal chain: [bubble] ──BLOCKS──> [bubble] ──> ... */
-        .graph-chain {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0;
-            animation: slideIn 0.25s ease;
-        }
-
-        /* The task bubble (circle/pill) */
-        .graph-bubble {
             position: relative;
+            width: 100%;
+            min-height: 320px;
+        }
+
+        .graph-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+        .graph-nodes {
+            position: relative;
+            width: 100%;
+            min-height: 320px;
+        }
+
+        /* The task bubble */
+        .graph-bubble {
+            position: absolute;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 88px;
-            max-width: 130px;
-            padding: 10px 14px;
+            width: 110px;
+            padding: 10px 12px;
             background: #ffffff;
-            border: 1.5px solid rgba(99, 102, 241, 0.4);
+            border: 1.5px solid rgba(99, 102, 241, 0.35);
             border-radius: 100px;
             text-align: center;
             box-shadow: 0 2px 12px rgba(99, 102, 241, 0.1), 0 1px 3px rgba(0,0,0,0.06);
-            transition: box-shadow var(--transition), transform var(--transition);
+            transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
             cursor: default;
+            transform: translate(-50%, -50%);
         }
 
         .graph-bubble:hover {
-            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
-            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.6);
+            transform: translate(-50%, -50%) scale(1.04);
+            z-index: 10;
         }
 
         .graph-bubble.isolated {
@@ -630,21 +637,7 @@
             box-shadow: 0 1px 4px rgba(0,0,0,0.05);
         }
 
-        .graph-bubble.isolated:hover {
-            border-color: rgba(99, 102, 241, 0.3);
-            box-shadow: 0 2px 12px rgba(99, 102, 241, 0.1);
-        }
-
-        /* Category colour dot in top-right corner of bubble */
-        .category-dot {
-            position: absolute;
-            top: 5px;
-            right: 8px;
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-        }
-
+        /* Category colour classes kept for priority cards */
         .cat-finance   { background: #f59e0b; }
         .cat-health    { background: #10b981; }
         .cat-work      { background: #6366f1; }
@@ -660,12 +653,30 @@
             word-break: break-word;
         }
 
-        .bubble-id {
+        /* "blocks N" badge shown on impactful nodes */
+        .impact-badge {
+            margin-top: 5px;
             font-family: var(--font-mono);
             font-size: 9px;
-            color: var(--text-muted);
-            margin-top: 3px;
-            letter-spacing: 0.04em;
+            font-weight: 700;
+            color: #d97706;
+            background: rgba(245,158,11,0.1);
+            border: 1px solid rgba(245,158,11,0.25);
+            border-radius: 100px;
+            padding: 1px 7px;
+            letter-spacing: 0.03em;
+        }
+
+        /* Small purple dot = can be batched with another task */
+        .batch-dot {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: help;
         }
 
         .bubble-effort {
@@ -675,86 +686,10 @@
             padding: 1px 6px;
             border-radius: 100px;
         }
-        .effort-low    { color: var(--green);  background: rgba(0,255,163,0.08); }
-        .effort-medium { color: var(--amber);  background: rgba(245,158,11,0.08); }
-        .effort-high   { color: var(--red);    background: rgba(239,68,68,0.08); }
 
-        /* The arrow + label between two bubbles */
-        .graph-connector {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 2px;
-            padding: 0 4px;
-            flex-shrink: 0;
-        }
-
-        .connector-label {
-            font-family: var(--font-mono);
-            font-size: 8px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-        }
-
-        /* BLOCKS — solid amber arrow */
-        .connector-line {
-            position: relative;
-            width: 28px;
-            height: 2px;
-            border-radius: 2px;
-        }
-
-        .connector-line::after {
-            content: '';
-            position: absolute;
-            right: -1px;
-            top: 50%;
-            transform: translateY(-50%);
-            border-top: 4px solid transparent;
-            border-bottom: 4px solid transparent;
-        }
-
-        .connector-BLOCKS .connector-label    { color: #d97706; }
-        .connector-BLOCKS .connector-line     { background: linear-gradient(to right, #f59e0b, rgba(245,158,11,0.4)); }
-        .connector-BLOCKS .connector-line::after { border-left: 6px solid #f59e0b; }
-
-        /* RELATED_TO — indigo dashed */
-        .connector-RELATED_TO .connector-label { color: var(--accent); }
-        .connector-RELATED_TO .connector-line  {
-            background: none;
-            border-top: 2px dashed rgba(99, 102, 241, 0.5);
-            height: 0;
-        }
-        .connector-RELATED_TO .connector-line::after { border-left: 6px solid var(--accent); top: -4px; }
-
-        /* DONE_TOGETHER — purple dashed */
-        .connector-DONE_TOGETHER .connector-label { color: #7c3aed; }
-        .connector-DONE_TOGETHER .connector-line  {
-            background: none;
-            border-top: 2px dashed rgba(139, 92, 246, 0.5);
-            height: 0;
-        }
-        .connector-DONE_TOGETHER .connector-line::after { border-left: 6px solid #8b5cf6; top: -4px; }
-
-        /* Row of isolated (unconnected) nodes */
-        .standalone-section {
-            animation: slideIn 0.25s ease;
-        }
-
-        .standalone-label {
-            font-family: var(--font-mono);
-            font-size: 9px;
-            letter-spacing: 0.15em;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .standalone-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+        .effort-low    { color: var(--green); background: rgba(16,185,129,0.1); }
+        .effort-medium { color: var(--amber); background: rgba(245,158,11,0.1); }
+        .effort-high   { color: var(--red);   background: rgba(239,68,68,0.1); }
 
         /* ── AI Summary box ────────────────────────────────────────── */
         .ai-summary {
@@ -862,6 +797,87 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
+        }
+
+        /* ── Task card extras ──────────────────────────────────────── */
+        .complete-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--border-bright);
+            background: transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border-color var(--transition), background var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1px;
+        }
+
+        .complete-btn:hover { border-color: var(--green); }
+
+        .complete-btn.done {
+            border-color: var(--green);
+            background: var(--green);
+        }
+
+        .complete-btn.done svg { display: block; }
+        .complete-btn svg { display: none; }
+
+        .task-card.completed .task-title {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .task-card.completed {
+            opacity: 0.6;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: color var(--transition);
+            display: flex;
+            align-items: center;
+        }
+
+        .drag-handle:hover { color: var(--text-secondary); }
+        .task-card.dragging { opacity: 0.4; }
+        .task-card.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+
+        .edit-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity var(--transition), color var(--transition);
+        }
+
+        .task-card:hover .edit-btn { opacity: 1; }
+        .edit-btn:hover { color: var(--accent); }
+
+        .edit-input {
+            width: 100%;
+            background: var(--bg-panel);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-family: var(--font-ui);
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            outline: none;
         }
 
         /* ── AI reasoning chip on task cards ──────────────────────── */
@@ -1049,7 +1065,7 @@
                     <div class="panel-badge cyan" id="graphCount">0 nodes</div>
                 </div>
 
-                <div class="panel-body" id="graphList" style="flex-wrap: wrap; align-content: flex-start;">
+                <div class="panel-body" id="graphList" style="padding: 0; overflow-y: auto; overflow-x: hidden; position: relative; min-height: 360px;">
                     <div class="empty-state" id="graphEmpty">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
@@ -1105,6 +1121,8 @@
             const list = document.getElementById('priorityList');
             const empty = document.getElementById('priorityEmpty');
             const badge = document.getElementById('priorityCount');
+            const active = tasks.filter(t => !t.completed);
+            const done   = tasks.filter(t => t.completed);
             badge.textContent = tasks.length + ' task' + (tasks.length !== 1 ? 's' : '');
 
             if (tasks.length === 0) {
@@ -1113,22 +1131,25 @@
                 return;
             }
 
-            // Sort by AI-assigned priority (lower number = higher rank); fall back to createdAt
-            const sorted = [...tasks].sort((a, b) => {
-                const ap = Number(a.priority) || 9999;
-                const bp = Number(b.priority) || 9999;
-                if (ap !== bp) return ap - bp;
-                return new Date(b.createdAt) - new Date(a.createdAt);
-            });
+            const sorted = [
+                ...[...active].sort((a, b) => {
+                    const ap = Number(a.priority) || 9999;
+                    const bp = Number(b.priority) || 9999;
+                    if (ap !== bp) return ap - bp;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                }),
+                ...done,
+            ];
 
-            const hasAiRanking = sorted.some(t => t.reasoning);
+            const hasAiRanking = sorted.some(t => t.reasoning && !t.completed);
 
-            list.innerHTML = sorted.map((task, i) => {
-                const aiChip = hasAiRanking
+            function cardHtml(task, i) {
+                const isComplete = !!task.completed;
+                const aiChip = isComplete ? '' : hasAiRanking
                     ? '<span class="meta-chip priority-high">AI Ranked</span>'
                     : '<span class="meta-chip ai-pending">AI Pending</span>';
 
-                const reasoningHtml = task.reasoning ? `
+                const reasoningHtml = task.reasoning && !isComplete ? `
                     <div class="reasoning-row">
                         <svg class="reasoning-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -1137,130 +1158,269 @@
                     </div>` : '';
 
                 return `
-                <div class="task-card" data-id="${task.id}">
-                    <div class="rank-number ${getRankClass(i)}">${i + 1}</div>
+                <div class="task-card${isComplete ? ' completed' : ''}" data-id="${task.id}" draggable="${!isComplete}">
+                    <div class="drag-handle" title="Drag to reorder">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/>
+                            <circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/>
+                            <circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <button class="complete-btn${isComplete ? ' done' : ''}" onclick="toggleComplete('${task.id}', ${!isComplete})" title="${isComplete ? 'Mark incomplete' : 'Mark complete'}">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                    <div class="rank-number ${getRankClass(i)}">${isComplete ? '✓' : i + 1}</div>
                     <div class="task-card-body">
-                        <div class="task-title">${escapeHtml(task.title)}</div>
+                        <div class="task-title" id="title-${task.id}">${escapeHtml(task.title)}</div>
                         <div class="task-meta">
                             ${aiChip}
                             <span class="task-time">${formatTime(task.createdAt)}</span>
                         </div>
                         ${reasoningHtml}
                     </div>
+                    <button class="edit-btn" onclick="startEdit('${task.id}')" title="Edit task">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
                     <button class="delete-btn" onclick="deleteTask('${task.id}')" title="Remove task">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </button>
                 </div>`;
-            }).join('');
+            }
+
+            list.innerHTML = sorted.map((task, i) => cardHtml(task, i)).join('');
+            initDragDrop();
         }
 
-        function buildGraphChains(nodes, relationships) {
-            const nodeById = {};
-            nodes.forEach(n => { nodeById[n.id] = n; });
+        // ── SVG Node Graph ────────────────────────────────────────────
+        const CAT_CLASS = {
+            finance: 'cat-finance', health: 'cat-health', work: 'cat-work',
+            home: 'cat-home', learning: 'cat-learning', other: 'cat-other',
+        };
+        const EFFORT_CLASS = { low: 'effort-low', medium: 'effort-medium', high: 'effort-high' };
+        const EDGE_COLORS  = { BLOCKS: '#f59e0b', RELATED_TO: '#6366f1', DONE_TOGETHER: '#8b5cf6' };
+        const EDGE_DASH    = { BLOCKS: 'none', RELATED_TO: '5,4', DONE_TOGETHER: '3,4' };
+        const EDGE_LABELS  = { BLOCKS: 'BLOCKS', RELATED_TO: 'RELATED', DONE_TOGETHER: 'TOGETHER' };
 
-            // First outgoing edge per source, and track which nodes have incoming
-            const firstTarget = {};
-            const hasIncoming = new Set();
-            relationships.forEach(rel => {
-                if (!firstTarget[rel.source]) firstTarget[rel.source] = { id: rel.target, type: rel.type };
-                hasIncoming.add(rel.target);
-            });
+        // ── Dependency-layer layout ───────────────────────────────────────────
+        // Layer 1+: nodes connected via BLOCKS (topological order, top = most impact)
+        // Layer DT: nodes only connected via DONE_TOGETHER (no BLOCKS edges)
+        // Bottom:   truly independent nodes (no edges at all)
+        function computePositions(nodes, blocksEdges, dtEdges, W) {
+            if (nodes.length === 0) return { positions: {}, height: 300 };
 
-            const placed = new Set();
-            const chains = [];
+            const NODE_W  = 120;
+            const NODE_H  = 62;
+            const COL_GAP = 44;
+            const ROW_GAP = 88;
+            const PAD_X   = 60;
+            const PAD_Y   = 48;
+            const colStep = NODE_W + COL_GAP;
+            const maxPerRow = Math.max(1, Math.floor((W - PAD_X * 2 + COL_GAP) / colStep));
 
-            // Walk chains starting from true roots (outgoing, no incoming) first
-            const candidates = [
-                ...nodes.filter(n => firstTarget[n.id] && !hasIncoming.has(n.id)),
-                ...nodes.filter(n => firstTarget[n.id] &&  hasIncoming.has(n.id)),
-            ];
-
-            candidates.forEach(start => {
-                if (placed.has(start.id)) return;
-                const chain = [{ node: start, edgeType: null }];
-                placed.add(start.id);
-                let cur = start;
-                while (firstTarget[cur.id]) {
-                    const { id: nextId, type } = firstTarget[cur.id];
-                    if (placed.has(nextId) || !nodeById[nextId]) break;
-                    chain[chain.length - 1].edgeType = type;
-                    chain.push({ node: nodeById[nextId], edgeType: null });
-                    placed.add(nextId);
-                    cur = nodeById[nextId];
+            const nodeIds = new Set(nodes.map(n => n.id));
+            const outgoing = {}, incoming = {};
+            nodes.forEach(n => { outgoing[n.id] = []; incoming[n.id] = []; });
+            blocksEdges.forEach(e => {
+                if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
+                    outgoing[e.source].push(e.target);
+                    incoming[e.target].push(e.source);
                 }
-                if (chain.length > 1) chains.push(chain);
             });
 
-            const standalone = nodes.filter(n => !placed.has(n.id));
-            return { chains, standalone };
+            const blocksConnected = new Set(blocksEdges.flatMap(e => [e.source, e.target]).filter(id => nodeIds.has(id)));
+            const dtConnected     = new Set(dtEdges.flatMap(e => [e.source, e.target]).filter(id => nodeIds.has(id)));
+
+            // Nodes with only DONE_TOGETHER edges (no BLOCKS involvement)
+            const dtOnly      = nodes.filter(n => dtConnected.has(n.id) && !blocksConnected.has(n.id));
+            // Truly independent: no edges of any kind
+            const independent = nodes.filter(n => !blocksConnected.has(n.id) && !dtConnected.has(n.id));
+
+            // Kahn's topological layering for BLOCKS nodes
+            const layers = [];
+            const assigned = new Set();
+            let frontier = nodes.filter(n => blocksConnected.has(n.id) && incoming[n.id].length === 0);
+
+            while (frontier.length > 0) {
+                layers.push(frontier);
+                frontier.forEach(n => assigned.add(n.id));
+                const next = [];
+                frontier.forEach(n => {
+                    outgoing[n.id].forEach(tid => {
+                        if (!assigned.has(tid) && incoming[tid].every(sid => assigned.has(sid))) {
+                            next.push(nodes.find(x => x.id === tid));
+                        }
+                    });
+                });
+                frontier = next.filter(Boolean);
+            }
+            const leftover = nodes.filter(n => blocksConnected.has(n.id) && !assigned.has(n.id));
+            if (leftover.length) layers.push(leftover);
+
+            const positions = {};
+            let y = PAD_Y;
+
+            const placeRow = rowNodes => {
+                const totalW = Math.min(rowNodes.length, maxPerRow) * colStep - COL_GAP;
+                const startX = (W - totalW) / 2;
+                rowNodes.forEach((node, i) => {
+                    const col = i % maxPerRow;
+                    const row = Math.floor(i / maxPerRow);
+                    if (row > 0 && col === 0) y += NODE_H + ROW_GAP;
+                    positions[node.id] = {
+                        x: startX + col * colStep + NODE_W / 2,
+                        y: y + NODE_H / 2,
+                    };
+                });
+                y += NODE_H + ROW_GAP;
+            };
+
+            layers.forEach(layer => placeRow(layer));
+            if (dtOnly.length > 0) {
+                if (layers.length > 0) y += 16;
+                placeRow(dtOnly);
+            }
+            if (independent.length > 0) {
+                y += 16;
+                placeRow(independent);
+            }
+
+            return { positions, height: Math.max(280, y) };
         }
 
         function renderGraphList(nodes, relationships) {
-            const list = document.getElementById('graphList');
+            const list  = document.getElementById('graphList');
             const empty = document.getElementById('graphEmpty');
             const badge = document.getElementById('graphCount');
-            badge.textContent = nodes.length + ' node' + (nodes.length !== 1 ? 's' : '');
 
-            if (nodes.length === 0) {
+            // Filter out completed tasks entirely
+            const activeNodes = nodes.filter(n => !n.completed);
+            const activeIds   = new Set(activeNodes.map(n => n.id));
+
+            badge.textContent = activeNodes.length + ' node' + (activeNodes.length !== 1 ? 's' : '');
+
+            if (activeNodes.length === 0) {
                 list.innerHTML = '';
                 list.appendChild(empty);
                 return;
             }
 
-            const { chains, standalone } = buildGraphChains(nodes, relationships);
+            // BLOCKS drives layout; DONE_TOGETHER is drawn but doesn't affect layout
+            const blocksEdges = relationships.filter(r => r.type === 'BLOCKS' && activeIds.has(r.source) && activeIds.has(r.target));
+            const dtEdges     = relationships.filter(r => r.type === 'DONE_TOGETHER' && activeIds.has(r.source) && activeIds.has(r.target));
 
-            const categoryDotClass = {
-                finance: 'cat-finance', health: 'cat-health', work: 'cat-work',
-                home: 'cat-home', learning: 'cat-learning', other: 'cat-other',
-            };
-            const effortClass = { low: 'effort-low', medium: 'effort-medium', high: 'effort-high' };
+            const W = list.clientWidth || 460;
+            const { positions: pos, height: H } = computePositions(activeNodes, blocksEdges, dtEdges, W);
 
-            function bubbleHtml(node, isolated) {
-                const cat = (node.category || '').toLowerCase();
-                const eff = (node.effort || '').toLowerCase();
-                const dotClass = categoryDotClass[cat] || 'cat-other';
-                const effClass = effortClass[eff] || '';
-                const effortHtml = eff ? `<div class="bubble-effort ${effClass}">${eff}</div>` : '';
-                const dotHtml = `<div class="category-dot ${dotClass}" title="${escapeHtml(cat || 'other')}"></div>`;
+            // Impact count: how many tasks does each node directly block
+            const impactCount = {};
+            blocksEdges.forEach(e => { impactCount[e.source] = (impactCount[e.source] || 0) + 1; });
+
+            // SVG markers
+            const markers = `
+                <marker id="arrow-blocks" markerWidth="8" markerHeight="8"
+                    refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0.5 L0,7.5 L8,4 z" fill="#f59e0b"/>
+                </marker>
+                <marker id="arrow-dt" markerWidth="8" markerHeight="8"
+                    refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0.5 L0,7.5 L8,4 z" fill="#8b5cf6"/>
+                </marker>`;
+
+            // Helper: draw a curved edge between two nodes
+            function edgePath(rel, stroke, dash, markerEnd, labelText, labelColor) {
+                const a = pos[rel.source], b = pos[rel.target];
+                if (!a || !b) return '';
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                const R = 36;
+                const x1 = a.x + (dx / len) * R, y1 = a.y + (dy / len) * R;
+                const x2 = b.x - (dx / len) * R, y2 = b.y - (dy / len) * R;
+                const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+                const curve = Math.min(len * 0.18, 40);
+                const cx_ = mx - (dy / len) * curve;
+                const cy_ = my + (dx / len) * curve;
+                const lx = 0.25 * x1 + 0.5 * cx_ + 0.25 * x2;
+                const ly = 0.25 * y1 + 0.5 * cy_ + 0.25 * y2 - 6;
                 return `
-                    <div class="graph-bubble${isolated ? ' isolated' : ''}" data-id="${node.id}" title="${escapeHtml(node.title)}">
-                        ${dotHtml}
-                        <div class="bubble-title">${escapeHtml(node.title)}</div>
-                        <div class="bubble-id">NODE:${shortId(node.id)}</div>
-                        ${effortHtml}
-                    </div>`;
+                    <path d="M${x1},${y1} Q${cx_},${cy_} ${x2},${y2}"
+                        fill="none" stroke="${stroke}" stroke-width="1.8"
+                        stroke-dasharray="${dash}" opacity="0.7"
+                        marker-end="url(#${markerEnd})"/>
+                    <text x="${lx}" y="${ly}" text-anchor="middle"
+                        font-family="Inter,sans-serif" font-size="8" font-weight="600"
+                        fill="${labelColor}" opacity="0.9">${labelText}</text>`;
             }
 
-            function connectorHtml(type) {
-                const safeType = ['BLOCKS', 'RELATED_TO', 'DONE_TOGETHER'].includes(type) ? type : 'BLOCKS';
-                const labels = { BLOCKS: 'BLOCKS', RELATED_TO: 'RELATED TO', DONE_TOGETHER: 'DONE TOGETHER' };
-                return `
-                    <div class="graph-connector connector-${safeType}">
-                        <div class="connector-label">${labels[safeType]}</div>
-                        <div class="connector-line"></div>
-                    </div>`;
+            // DONE_TOGETHER drawn first (behind BLOCKS)
+            let svgEdges = dtEdges.map(rel => edgePath(rel, '#8b5cf6', '5,4', 'arrow-dt', 'do together', '#7c3aed')).join('');
+            // BLOCKS drawn on top
+            svgEdges += blocksEdges.map(rel => edgePath(rel, '#f59e0b', 'none', 'arrow-blocks', 'must do first', '#d97706')).join('');
+
+            // Divider labels
+            const blocksIds    = new Set(blocksEdges.flatMap(r => [r.source, r.target]));
+            const dtOnlyIds    = new Set(dtEdges.flatMap(r => [r.source, r.target]).filter(id => !blocksIds.has(id)));
+            const connectedIds = new Set([...blocksIds, ...dtOnlyIds]);
+            const trulyIndep   = activeNodes.filter(n => !connectedIds.has(n.id));
+
+            let svgDivider = '';
+
+            // Divider before DT-only group
+            if (blocksIds.size > 0 && dtOnlyIds.size > 0) {
+                const firstDtY = Math.min(...[...dtOnlyIds].map(id => pos[id]?.y ?? H));
+                const divY = firstDtY - 44;
+                svgDivider += `
+                    <line x1="16" y1="${divY}" x2="${W - 16}" y2="${divY}"
+                        stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>
+                    <text x="${W / 2}" y="${divY - 6}" text-anchor="middle"
+                        font-family="Inter,sans-serif" font-size="9" fill="#8b5cf6"
+                        letter-spacing="0.1em">DONE TOGETHER</text>`;
             }
 
-            const chainsHtml = chains.map(chain => {
-                const inner = chain.map((item, i) => {
-                    const bub = bubbleHtml(item.node, false);
-                    const arrow = item.edgeType ? connectorHtml(item.edgeType) : '';
-                    return bub + arrow;
-                }).join('');
-                return `<div class="graph-chain">${inner}</div>`;
+            // Divider before truly independent group
+            if (connectedIds.size > 0 && trulyIndep.length > 0) {
+                const firstIndepY = Math.min(...trulyIndep.map(n => pos[n.id]?.y ?? H));
+                const divY = firstIndepY - 44;
+                svgDivider += `
+                    <line x1="16" y1="${divY}" x2="${W - 16}" y2="${divY}"
+                        stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>
+                    <text x="${W / 2}" y="${divY - 6}" text-anchor="middle"
+                        font-family="Inter,sans-serif" font-size="9" fill="#94a3b8"
+                        letter-spacing="0.1em">INDEPENDENT TASKS</text>`;
+            }
+
+            // Node bubbles
+            const bubbles = activeNodes.map(node => {
+                const p        = pos[node.id] || { x: W / 2, y: H / 2 };
+                const isolated = !connectedIds.has(node.id);
+                const impact   = impactCount[node.id] || 0;
+                const impactHtml = impact > 0
+                    ? `<div class="impact-badge">blocks ${impact}</div>`
+                    : '';
+                return `<div class="graph-bubble${isolated ? ' isolated' : ''}"
+                            data-id="${node.id}"
+                            style="left:${p.x}px; top:${p.y}px;"
+                            title="${escapeHtml(node.title)}">
+                    <div class="bubble-title">${escapeHtml(node.title)}</div>
+                    ${impactHtml}
+                </div>`;
             }).join('');
 
-            const standaloneHtml = standalone.length > 0 ? `
-                <div class="standalone-section">
-                    <div class="standalone-label">ISOLATED NODES</div>
-                    <div class="standalone-row">
-                        ${standalone.map(n => bubbleHtml(n, true)).join('')}
-                    </div>
-                </div>` : '';
-
-            list.innerHTML = `<div class="graph-canvas">${chainsHtml}${standaloneHtml}</div>`;
+            list.innerHTML = `
+                <div class="graph-canvas" style="height:${H}px;">
+                    <svg class="graph-svg" viewBox="0 0 ${W} ${H}">
+                        <defs>${markers}</defs>
+                        ${svgDivider}
+                        ${svgEdges}
+                    </svg>
+                    <div class="graph-nodes">${bubbles}</div>
+                </div>`;
         }
 
         function escapeHtml(str) {
@@ -1273,6 +1433,97 @@
 
         function updateTaskCount(tasks) {
             document.getElementById('taskCountDisplay').textContent = tasks.length;
+        }
+
+        // ── Edit task ────────────────────────────────────────────────
+        function startEdit(id) {
+            const titleEl = document.getElementById('title-' + id);
+            if (!titleEl) return;
+            const current = titleEl.textContent;
+            titleEl.innerHTML = `<input class="edit-input" id="edit-input-${id}" value="${escapeHtml(current)}" maxlength="200" />`;
+            const input = document.getElementById('edit-input-' + id);
+            input.focus();
+            input.select();
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') saveEdit(id, input.value);
+                if (e.key === 'Escape') titleEl.textContent = current;
+            });
+            input.addEventListener('blur', () => saveEdit(id, input.value));
+        }
+
+        async function saveEdit(id, newTitle) {
+            const t = (newTitle || '').trim();
+            if (!t) return;
+            try {
+                await fetch('/tasks/' + id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: t }),
+                });
+                await fetchTasks();
+            } catch (e) { showToast('Could not save edit', true); }
+        }
+
+        // ── Complete task ─────────────────────────────────────────────
+        async function toggleComplete(id, completed) {
+            try {
+                await fetch('/tasks/' + id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed }),
+                });
+                await fetchTasks();
+                showToast(completed ? 'Task completed!' : 'Marked incomplete');
+            } catch (e) { showToast('Could not update task', true); }
+        }
+
+        // ── Drag to reorder ───────────────────────────────────────────
+        let dragSrcId = null;
+
+        function initDragDrop() {
+            const cards = document.querySelectorAll('.task-card[draggable="true"]');
+            cards.forEach(card => {
+                card.addEventListener('dragstart', e => {
+                    dragSrcId = card.dataset.id;
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                });
+                card.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    card.classList.add('drag-over');
+                });
+                card.addEventListener('drop', async e => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    if (!dragSrcId || dragSrcId === card.dataset.id) return;
+
+                    // Re-read current visual order and swap priorities
+                    const allCards = [...document.querySelectorAll('.task-card[draggable="true"]')];
+                    const ids = allCards.map(c => c.dataset.id);
+                    const fromIdx = ids.indexOf(dragSrcId);
+                    const toIdx   = ids.indexOf(card.dataset.id);
+                    if (fromIdx === -1 || toIdx === -1) return;
+
+                    ids.splice(fromIdx, 1);
+                    ids.splice(toIdx, 0, dragSrcId);
+
+                    // Assign new priorities and persist
+                    await Promise.all(ids.map((tid, i) =>
+                        fetch('/tasks/' + tid + '/rank', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ priority: i + 1 }),
+                        })
+                    ));
+                    await fetchTasks();
+                });
+            });
         }
 
         // ── API calls ────────────────────────────────────────────────
@@ -1377,19 +1628,16 @@
 
         // ── Demo loader ──────────────────────────────────────────────
         const DEMO_TASKS = [
-    'Buy birthday gifts for Sarah',
-    'Email report to manager',
-     'Draft Q2 quarterly report',
-    'Research ergonomic office chairs',
-    'Update 2FA on banking apps',
-    'Water the fiddle leaf fig',
-    'get peanut butter',
-    'Order groceries for Sunday meal prep',
     'Complete "Advanced React" module 4',
+    'Research ergonomic office chairs',
+    'Buy a ergonomic chair',
+    'Buy birthday gifts for Sarah',
+    'brainstorm good gift ideas',
+    'Laundry',
+    'email on new job offer',
+    'Listen to a podcast', 
+    'Update 2FA on banking apps', 
     'Renew annual gym membership',
-    'get strawberries from the store',
-    'Brainstorm gift ideas for Sarah’s birthday',
-    'Book flight for summer vacation',
 ];
 
         async function loadDemo() {

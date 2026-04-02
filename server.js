@@ -157,6 +157,53 @@ app.get('/graph', async (req, res) => {
     }
 });
 
+// ── PATCH /tasks/:id ──────────────────────────────────────────────────────────
+// Body: { title?: string, completed?: boolean }
+// Updates task title and/or completion status in Neo4j.
+app.patch('/tasks/:id', async (req, res) => {
+    const { title, completed } = req.body;
+    const session = await getSession();
+    try {
+        const setClauses = [];
+        const params = { id: req.params.id };
+        if (title !== undefined) { setClauses.push('t.title = $title'); params.title = title.trim(); }
+        if (completed !== undefined) { setClauses.push('t.completed = $completed'); params.completed = completed; }
+        if (setClauses.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+
+        await session.run(
+            `MATCH (t:Task {id: $id}) SET ${setClauses.join(', ')}`,
+            params
+        );
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('Neo4j error (PATCH /tasks/:id):', err.message);
+        res.status(500).json({ error: err.message });
+    } finally {
+        await session.close();
+    }
+});
+
+// ── PATCH /tasks/:id/rank ─────────────────────────────────────────────────────
+// Body: { priority: number }
+// Lets the user manually override the AI rank of a task.
+app.patch('/tasks/:id/rank', async (req, res) => {
+    const { priority } = req.body;
+    if (typeof priority !== 'number') return res.status(400).json({ error: 'priority must be a number' });
+    const session = await getSession();
+    try {
+        await session.run(
+            `MATCH (t:Task {id: $id}) SET t.priority = $priority, t.reasoning = null`,
+            { id: req.params.id, priority }
+        );
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('Neo4j error (PATCH /tasks/:id/rank):', err.message);
+        res.status(500).json({ error: err.message });
+    } finally {
+        await session.close();
+    }
+});
+
 // ── DELETE /graph/:id ─────────────────────────────────────────────────────────
 // Removes the Task node and all its relationships, then returns the updated graph.
 app.delete('/graph/:id', async (req, res) => {
@@ -213,9 +260,10 @@ app.post('/prioritize', async (req, res) => {
 
     const session = await getSession();
     try {
-        // ── Fetch all tasks ───────────────────────────────────────────────────
+        // ── Fetch only incomplete tasks ───────────────────────────────────────
         const result = await session.run(
-            `MATCH (t:Task) RETURN t.id AS id, t.title AS title ORDER BY t.createdAt ASC`
+            `MATCH (t:Task) WHERE t.completed IS NULL OR t.completed = false
+             RETURN t.id AS id, t.title AS title ORDER BY t.createdAt ASC`
         );
         const tasks = result.records.map(r => ({
             id:    r.get('id'),
@@ -250,12 +298,13 @@ Return a single JSON object (no markdown, no text outside the JSON):
 }
 
 Rules:
-- BLOCKS: task A must be completed before task B can start (hard dependency)
-- RELATED_TO: tasks belong to the same category or theme (grouping)
-- DONE_TOGETHER: tasks that can be efficiently tackled at the same time or in the same outing (e.g. buying chocolate and getting bananas, or booking two appointments back-to-back) — use this to help the user batch work and save time
-- Every task must appear in "nodes" and "rankings"
-- Only create edges where there is a clear logical connection
-- finalRank must be unique integers starting from 1`;
+- BLOCKS: task A must be completed before task B can start (hard dependency). Be strict — only use when there is a genuine prerequisite.
+- RELATED_TO: tasks that share a theme, domain, or context (e.g. all finance tasks, all health tasks, all work tasks). Be generous — connect tasks that belong to the same area of life even loosely.
+- DONE_TOGETHER: tasks that can be physically or logically batched in the same session, trip, or sitting (e.g. errands in the same area, back-to-back appointments, tasks needing the same tool or website). Use this liberally to help the user save time.
+- Every task must appear in "nodes" and "rankings".
+- Aim to connect MOST tasks with at least one relationship — a well-connected graph is more useful than a sparse one.
+- You may connect a task to multiple others if appropriate.
+- finalRank must be unique integers starting from 1.`;
 
         const geminiRes = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
